@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { fetchItems, addItem, updateItem, deleteItem } from './redux/itemsSlice';
+import Home from './Home';
+import AddItem from './AddItem';
+import NotFound from './NotFound';
 
 const App = () => {
     const dispatch = useDispatch();
@@ -41,11 +45,23 @@ const App = () => {
         <div style={{ padding: '20px' }}>
             <h1>React-Redux CRUD</h1>
 
+                <nav>
+                    <ul>
+                        <li><Link to="/">Home</Link></li>
+                        <li><Link to="/add-item">Add Item</Link></li>
+                    </ul>
+                </nav>
+                <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/add-item" element={<AddItem />} />
+                    <Route path="*" element={<NotFound />} /> {/* Catch-all route for 404 */}
+                </Routes>
+
             {status === 'loading' && <p>Loading...</p>}
             {status === 'failed' && <p>Error: {error}</p>}
             {deletItem}
 
-            <div>
+            {/* <div>
                 <h2>Add Item</h2>
                 <input
                     type="text"
@@ -54,7 +70,7 @@ const App = () => {
                     placeholder="Enter item name"
                 />
                 <button onClick={handleAdd}>Add</button>
-            </div>
+            </div> */}
 
             <div>
                 <h2>Items List</h2>

@@ -1,72 +1,59 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import { store } from './redux/store';
+import { MemoryRouter } from 'react-router-dom';
+import { store } from './redux/store'; // Ensure store is correctly configured
 import App from './App';
-import { server } from './server'
-// import { http } from 'msw';
-// import { setupServer } from 'msw/node';
-import { beforeAll,afterAll, afterEach , describe, test, vitest} from 'vitest'
+import { server } from './server'; // Ensure the mock server is imported
+import { beforeAll, afterAll, afterEach, describe, test, vitest } from 'vitest';
 
-
-// Mock API server
-// const handlers = [
-    // http.get('http://localhost:3000/items', (req, res, ctx) => {
-    //     return res(ctx.json({ data: [{ id: 1, name: 'Test Item' }] }));
-    // }),
-    // http.post('http://localhost:3000/items', (req, res, ctx) => {
-    //     return res(ctx.json({ data: { id: 2, name: req.body.name } }));
-    // }),
-    // http.put('http://localhost:3000/items/:id', (req, res, ctx) => {
-    //     return res(ctx.json({ data: { id: req.params.id, name: req.body.name } }));
-    // }),
-    // http.delete('http://localhost:3000/items/:id', (req, res, ctx) => {
-    //     return res(ctx.status(200));
-    // }),
-// ];
-// const server = setupServer(...handlers);
-
+// Mock API server setup
 beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe('App Component', () => {
-   
-
     test('renders items list', async () => {
-        const xxx =  render(
-             <Provider store={store}>
-                 <App />
-             </Provider>
-         );
- 
-         const item = await waitFor(() => screen.findByText(/Test Item \d+/i)); // Case-insensitive match
-         expect(item).toBeInTheDocument();
- 
-         // const item = await waitFor(() => screen.findByText('Test Item 1'));
-         // expect(item).toBeInTheDocument();
-     });
+        render(
+            <Provider store={store}>
+                <MemoryRouter>
+                    <App />
+                </MemoryRouter>
+            </Provider>
+        );
+
+        // Ensure items load from the mocked server
+        const item = await waitFor(() => screen.findByText(/Test Item/i));
+        expect(screen.getByText(/Home Page/i)).toBeInTheDocument();
+        expect(item).toBeInTheDocument();
+    });
 
     test('adds a new item', async () => {
         render(
             <Provider store={store}>
-                <App />
+                <MemoryRouter initialEntries={['/add-item']}>
+                    <App />
+                </MemoryRouter>
             </Provider>
         );
+
+        // if you don't add this initialEntries={['/add-item']}, you have to use below code
+        // fireEvent.click(screen.getByText('Add Item')); 
 
         fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
             target: { value: 'New Test Item' },
         });
         fireEvent.click(screen.getByText('Add'));
 
-        const item = await waitFor(() => screen.findByText(/New Test Item/i)); // Case-insensitive match
+        const item = await waitFor(() => screen.findByText(/New Test Item/i));
         expect(item).toBeInTheDocument();
     });
 
-   
     test('edits an item', async () => {
         render(
             <Provider store={store}>
-                <App />
+                <MemoryRouter>
+                    <App />
+                </MemoryRouter>
             </Provider>
         );
 
@@ -76,45 +63,40 @@ describe('App Component', () => {
         });
         fireEvent.click(screen.getByText('Update'));
 
-        const item = await waitFor(() => screen.findByText(/Updated Item/i)); // Case-insensitive match
-        expect(item).toBeInTheDocument();
-
-        // await waitFor(() => expect(screen.getByText('Updated Item')).toBeInTheDocument());
+        const updatedItem = await waitFor(() => screen.findByText(/Updated Item/i));
+        expect(updatedItem).toBeInTheDocument();
     });
 
-    test('Deletes an item and checks server response message', async () => {
+    test('deletes an item and checks server response message', async () => {
         render(
             <Provider store={store}>
-                <App />
+                <MemoryRouter>
+                    <App />
+                </MemoryRouter>
             </Provider>
         );
 
         fireEvent.click(screen.getByTestId('delete-1'));
-        const item = await waitFor(() => screen.findByText(/Item Deleted/i)); // Case-insensitive match
-        expect(item).toBeInTheDocument();
-    
-        // Spy on the fetch call and mock the response
-        // const fetchSpy = vitest.spyOn(global, 'fetch').mockResolvedValueOnce(
-        //     new Response(
-        //         JSON.stringify({ success : true, message: "Item deleted" }),
-        //         { status: 200, headers: { 'Content-Type': 'application/json' } }
-        //     )
-        // );
-    
-        // Simulate clicking the delete button for item with id = 1
-        // fireEvent.click(screen.getByTestId('delete-1'));
 
-        // Wait for the API call to resolve
-        // const resultValue = fetchSpy.mock.results[0].value; // Access the mock's result
-        // const response = await resultValue.json(); // Parse the JSON response
+        const responseMessage = await waitFor(() => screen.findByText(/Item Deleted/i));
+        expect(responseMessage).toBeInTheDocument();
 
-        // // Assert the response message
-        // expect(response.message).toBe("Item deleted successfully");
+        // Uncomment and adjust fetch spy for additional checks
+        /*
+        const fetchSpy = vitest.spyOn(global, 'fetch').mockResolvedValueOnce(
+            new Response(
+                JSON.stringify({ success: true, message: 'Item Deleted' }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } }
+            )
+        );
 
-        // // Assert success flag
-        // expect(response.success).toBe(true);
+        fireEvent.click(screen.getByTestId('delete-1'));
+        const resultValue = fetchSpy.mock.results[0].value;
+        const response = await resultValue.json();
+        expect(response.message).toBe('Item Deleted');
+        expect(response.success).toBe(true);
 
-        // Clean up the mock
-        // fetchSpy.mockRestore();
+        fetchSpy.mockRestore();
+        */
     });
 });
